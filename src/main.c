@@ -7,8 +7,9 @@
 void display_avl(AVLTree node) {
     if (!node)
         return;
-    printf("%d",*(int*)node->data);
+    printf("%d-[%p]",*(int*)node->data, node);
 
+    printf("(F:%p)--->", node->father);
     if(node->left)
         printf("(L:%d)", *(int*)node->left->data);
     if(node->right)
@@ -27,9 +28,7 @@ void    monPrintF(void * a, void * b) {
     printf("Valeur du noeud : %d\n", *(int*)a);
 }
 
-/**TODO https://stackoverflow.com/questions/3955680/how-to-check-if-my-avl-tree-implementation-is-correct
- * TODO https://www.zentut.com/c-tutorial/c-avl-tree/
- * TODO https://fr.wikipedia.org/wiki/Arbre_bicolore
+/**
  * Tests réalisés pour les arbres AVL
  * N'affiche rien mais est basé sur des anticipations de valeurs
  * pour réaliser des pseudos tests unitaires
@@ -142,17 +141,23 @@ void testArbresAVL(void){
     assert(NULL == AVLtree_search(racine, compare, &notFound));
     printf("PASS -> AVLtree_search\n");
 
-    AVLTree delNode = AVLtree_search(racine, compare, &k);
-    racine = AVLtree_delete(racine, compare, racine);
+    racine = AVLtree_deleteNode(racine, compare, racine);
     printf("------------\n");
     display_avl(racine);
-    assert(9 == *(int*)racine->data);
-    assert(4 == *(int*)racine->left->data);
-    assert(3 == *(int*)racine->left->left->data);
-    assert(5 == *(int*)racine->left->right->data);
+    assert(4 == *(int*)racine->data);
+    assert(3 == *(int*)racine->left->data);
     assert(15 == *(int*)racine->right->data);
-    printf("PASS -> AVLtree_delete\n");
+    assert(5 == *(int*)racine->right->left->data);
+    printf("PASS -> AVLtree_deleteNode\n");
 
+    int delData = 15;
+    racine = AVLtree_deleteData(racine, compare, &delData);
+    printf("------------\n");
+    display_avl(racine);
+    assert(4 == *(int*)racine->data);
+    assert(3 == *(int*)racine->left->data);
+    assert(5 == *(int*)racine->right->data);
+    printf("PASS -> AVLtree_deleteData\n");
 
     //test AVLtree_pre_order
     printf("\nTri pre-order : \n");

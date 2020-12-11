@@ -52,6 +52,7 @@ AVLTree AVLtree_create(const void *data, size_t size) {
 
     tree = AVLtree_new();
     if ((tree = (AVLTree) malloc((sizeof(AVLTree) * 3) + sizeof(int) + size))) {
+        tree->father = NULL;
         tree->left = NULL;
         tree->right = NULL;
         memcpy(tree->data, data, size);
@@ -138,6 +139,12 @@ AVLTree AVLtree_rotateLeft(const AVLTree tree) {
     tree->left = oNode->right;
     oNode->right = tree;
 
+    ofNode = tree->father;
+    tree->father = oNode;
+    oNode->father = ofNode;
+
+    //TODO
+    printf("rl | tree[%p] - oNode[%p]\n", tree, oNode);
     AVLtree_setHeight(tree, MAX(AVLtree_getHeight(tree->left), AVLtree_getHeight(tree->right)) + 1);
     AVLtree_setHeight(oNode, MAX(AVLtree_getHeight(oNode->left), tree->height) + 1);
     return oNode;
@@ -149,11 +156,18 @@ AVLTree AVLtree_rotateLeft(const AVLTree tree) {
  */
 AVLTree AVLtree_rotateRight(const AVLTree tree) {
     AVLTree oNode;
+    AVLTree ofNode;
 
     oNode = tree->right;
     tree->right = oNode->left;
     oNode->left = tree;
 
+    ofNode = tree->father;
+    tree->father = oNode;
+    oNode->father = ofNode;
+
+    //TODO
+    printf("rr | tree[%p] - oNode[%p]\n", tree, oNode);
     AVLtree_setHeight(tree, MAX(AVLtree_getHeight(tree->left), AVLtree_getHeight(tree->right)) + 1);
     AVLtree_setHeight(oNode, MAX(AVLtree_getHeight(oNode->right), tree->height) + 1);
     return oNode;
@@ -165,6 +179,8 @@ AVLTree AVLtree_rotateRight(const AVLTree tree) {
  * puis vers la gauche.
  */
 AVLTree AVLtree_doubleRotateLeft(const AVLTree tree) {
+    //TODO
+    printf(">drl\n");
     tree->left = AVLtree_rotateRight(tree->left);
     return AVLtree_rotateLeft(tree);
 }
@@ -175,6 +191,8 @@ AVLTree AVLtree_doubleRotateLeft(const AVLTree tree) {
  * puis vers la droite.
  */
 AVLTree AVLtree_doubleRotateRight(const AVLTree tree) {
+    //TODO
+    printf(">drr\n");
     tree->right = AVLtree_rotateLeft(tree->right);
     return AVLtree_rotateRight(tree);
 }
@@ -220,6 +238,8 @@ AVLTree AVLtree_insertData(AVLTree tree, bool (*cmp)(const void *, const void *)
                 return NULL;
         } else if (cmp(data, tree->data)) {
             tree->left = AVLtree_insertData(tree->left, cmp, data, size);
+            if (tree->left)
+                tree->left->father = tree;
 
             if (AVLtree_getHeight(tree->left) - AVLtree_getHeight(tree->right) == 2) {
                 if (cmp(data, tree->left->data))
@@ -230,6 +250,8 @@ AVLTree AVLtree_insertData(AVLTree tree, bool (*cmp)(const void *, const void *)
 
         } else if (cmp(tree->data, data)) {
             tree->right = AVLtree_insertData(tree->right, cmp, data, size);
+            if (tree->right)
+                tree->right->father = tree;
 
             if (AVLtree_getHeight(tree->right) - AVLtree_getHeight(tree->left) == 2) {
                 if (cmp(tree->right->data, data))
@@ -266,6 +288,8 @@ AVLTree AVLtree_insertNode(AVLTree tree, bool (*cmp) (const void *, const void *
             tree = newNode;
         } else if (cmp(newNode->data, tree->data)) {
             tree->left = AVLtree_insertNode(tree->left, cmp, newNode);
+            if (tree->left)
+                tree->left->father = tree;
 
             if (AVLtree_getHeight(tree->left) - AVLtree_getHeight(tree->right) == 2) {
                 if (cmp(newNode->data, tree->left->data))
@@ -276,6 +300,8 @@ AVLTree AVLtree_insertNode(AVLTree tree, bool (*cmp) (const void *, const void *
 
         } else if (cmp(tree->data, newNode->data)) {
             tree->right = AVLtree_insertNode(tree->right, cmp, newNode);
+            if (tree->right)
+                tree->right->father = tree;
 
             if (AVLtree_getHeight(tree->right) - AVLtree_getHeight(tree->left) == 2) {
                 if (cmp(tree->right->data, newNode->data))
@@ -293,227 +319,140 @@ AVLTree AVLtree_insertNode(AVLTree tree, bool (*cmp) (const void *, const void *
 
 //----------------------------------------
 /*
- *
- */
-AVLTree AVLtree_delete(AVLTree tree, bool (*cmp) (const void *, const void *), const AVLTree delNode) {
-    //TODO
-    if (tree)
-        printf("in[%d]\n", *(int*)tree->data);
-    else
-        printf("in[NULL]\n");
+* Fonction de suppression de noeud.
+* Celle-ci va d'abord se positionner par recursion sur le noeud correspondant au noeud voulant être supprime.
+* Apres, nous separons les etats entre les noeuds possedant 0 ou 1 fils et le reste pour effecter un traitement
+* permettant de liberer la memoire.
+* A la suite, nous changeons la taille du noeud et balancons les noeuds si nous avons besoin avant de le
+* retourner pour depiler la recursion et refaire ces operations.
+*/
+AVLTree AVLtree_deleteNode(AVLTree tree, bool (*cmp) (const void *, const void *), const AVLTree delNode) {
+    if (tree == NULL)
+        return tree;
 
-    AVLTree p;
+    printf("in[%d]\n", *(int*)tree->data);
 
-    if(tree == NULL)
-    {
-        return NULL;
-    }
-    else if(cmp(tree->data, delNode->data))		// insert in right subtree
-    {
-        tree->right = AVLtree_delete(tree->right, cmp, delNode);
-        //TODO
-        printf("right -> %d\n", AVLtree_getHeight(tree->left) - AVLtree_getHeight(tree->right) >= 0);
-        if(AVLtree_getHeight(tree->left) - AVLtree_getHeight(tree->right) == 2)
-            if(AVLtree_getHeight(tree->left->left) - AVLtree_getHeight(tree->left->right) >= 0)
-                tree = AVLtree_rotateRight(tree);
-            else
-                tree = AVLtree_doubleRotateRight(tree);
-    }
-    else if(cmp(delNode->data, tree->data))
-    {
-        tree->left = AVLtree_delete(tree->left, cmp, delNode);
-        //TODO
-        printf("left -> %d\n", AVLtree_getHeight(tree->left) - AVLtree_getHeight(tree->right) <= 0);
-        if(AVLtree_getHeight(tree->left) - AVLtree_getHeight(tree->right) == -2)	//Rebalance during windup
-            if(AVLtree_getHeight(tree->right->left) - AVLtree_getHeight(tree->right->right) <= 0)
-                tree = AVLtree_rotateLeft(tree);
-            else
-                tree = AVLtree_doubleRotateLeft(tree);
-    }
-    else {
+    if (cmp(delNode->data, tree->data)) {
+        tree->left = AVLtree_deleteNode(tree->left, cmp, delNode);
+        if (tree->left)
+            tree->left->father = tree;
 
-        AVLTree oNode = tree;
+    } else if (cmp(tree->data, delNode->data)) {
+        tree->right = AVLtree_deleteNode(tree->right, cmp, delNode);
+        if (tree->right)
+            tree->right->father = tree;
+    } else {
+        if (!tree->left || !tree->right) {
+            AVLTree oNode;
 
-        if (tree->left && tree->right) {
-            AVLTree parent = tree->right;
-            tree = parent->left;
-            if (tree) {
-                while (tree->left) {
-                    parent = tree;
-                    tree = tree->left;
-                }
-                parent->left = tree->right;
-                tree->right = oNode->right;
-            } else
-                tree = parent;
-            tree->left = oNode->left;
-
-        } else if (tree->left)
-            tree = tree->left;
-        else
-            tree = tree->right;
-        free(oNode);
-
-
-
-
-
-        if(tree->right!=NULL) {
-            p = tree->right;
-
-            while(p->left!= NULL)
-                p = p->left;
-
-            tree->data = p->data;
-            tree->right = AVLtree_delete(tree->right,cmp, delNode);
-
-            if(AVLtree_getHeight(tree->left) - AVLtree_getHeight(tree->right) == 2)
-                if(AVLtree_getHeight(tree->left->left) - AVLtree_getHeight(tree->left->right) >= 0)
-                    tree = AVLtree_rotateRight(tree);
-                else
-                    tree = AVLtree_doubleRotateRight(tree);
-				}
-        else
-            return(tree->left);
-    }
-    AVLtree_setHeight(tree, MAX(AVLtree_getHeight(tree->left), AVLtree_getHeight(tree->right))+ 1);
-    return(tree);
-
-
-
-
-    if (delNode && delNode->data && tree && tree->data) {
-        if (cmp(delNode->data, tree->data)) {
-            tree->left = AVLtree_delete(tree->left, cmp, delNode);
-
-            if (AVLtree_getHeight(tree->left) - AVLtree_getHeight(tree->right) == 2) {
-                if (cmp(delNode->data, tree->left->data))
-                    tree = AVLtree_rotateLeft(tree);
-                else
-                    tree = AVLtree_doubleRotateLeft(tree);
+            oNode = (tree->left) ? tree->left : tree->right;
+            if (!oNode) {
+                oNode = tree;
+                tree = NULL;
+            } else {
+                oNode->father = tree->father;
+                *tree = *oNode;
             }
-
-        } else if (cmp(tree->data, delNode->data)) {
-            tree->right = AVLtree_delete(tree->right, cmp, delNode);
-
-            if (AVLtree_getHeight(tree->right) - AVLtree_getHeight(tree->left) == 2) {
-                if (cmp(tree->right->data, delNode->data))
-                    tree = AVLtree_rotateRight(tree);
-                else
-                    tree = AVLtree_doubleRotateRight(tree);
-            }
-
+            free(oNode);
         } else {
             AVLTree oNode;
 
-            oNode = tree;
-            if (tree->left) {
-                tree = tree->left;
-            } else if (tree->right) {
-                tree = tree->right;
-            } else {
-                tree = NULL;
-            }
-            free(oNode);
+            oNode = tree->right;
+            while (oNode->left)
+                oNode = oNode->left;
+
+            *tree->data = *oNode->data;
+            tree->right = AVLtree_deleteNode(tree->right, cmp, delNode);
+            if (tree->right)
+                tree->right->father = tree;
         }
-
-        if (tree)
-            AVLtree_setHeight(tree, MAX(AVLtree_getHeight(tree->left), AVLtree_getHeight(tree->right))+ 1);
-
-        //TODO
-        if (tree)
-            printf("out[%d]\n", *(int*)tree->data);
-        else
-            printf("out[NULL]\n");
-        return tree;
     }
-    //TODO
-    printf("out[NULL]\n");
-    return NULL;
 
-
-
-    /*
-    if (node) {
-        if (cmp(node->data, tree->data)) {
-            tree->left = AVLtree_delete(tree->left, cmp, node);
-
-            if (AVLtree_getHeight(tree->left) - AVLtree_getHeight(tree->right) == 2) {
-                //TODO
-                printf("left -> %d\n", AVLtree_getHeight(tree->right->left) - AVLtree_getHeight(tree->right->right) <= 0);
-                if (AVLtree_getHeight(tree->right->left) - AVLtree_getHeight(tree->right->right) <= 0)
-                    tree = AVLtree_rotateLeft(tree);
-                else
-                    tree = AVLtree_doubleRotateLeft(tree);
-            }
-
-        } else if (cmp(tree->data, node->data)) {
-            tree->right = AVLtree_delete(tree->right, cmp, node);
-            if (AVLtree_getHeight(tree->right) - AVLtree_getHeight(tree->left) == 2) {
-                //TODO
-                printf("right -> %d\n", AVLtree_getHeight(tree->right->left) - AVLtree_getHeight(tree->right->right) >= 0);
-                if (AVLtree_getHeight(tree->left->left) - AVLtree_getHeight(tree->left->right) >= 0)
-                    tree = AVLtree_rotateRight(tree);
-                else
-                    tree = AVLtree_doubleRotateRight(tree);
-            }
-        } else {
-            AVLTree oNode = tree;
-
-            if (tree->left && tree->right) {
-                AVLTree parent = tree->right;
-                tree = parent->left;
-                if (tree) {
-                    while (tree->left) {
-                        parent = tree;
-                        tree = tree->left;
-                    }
-                    parent->left = tree->right;
-                    tree->right = oNode->right;
-                } else
-                    tree = parent;
-                tree->left = oNode->left;
-
-            } else if (tree->left)
-                tree = tree->left;
-            else
-                tree = tree->right;
-            free(oNode);
-        }
-
-        AVLtree_setHeight(tree, MAX(AVLtree_getHeight(tree->left), AVLtree_getHeight(tree->right))+ 1);
+    if (tree == NULL)
         return tree;
-    }
-    return NULL;*/
+
+    AVLtree_setHeight(tree, MAX(AVLtree_getHeight(tree->left), AVLtree_getHeight(tree->right))+ 1);
+
+    int balance = AVLtree_getHeight(tree->left) - AVLtree_getHeight(tree->right);
+    if (balance > 1 && (AVLtree_getHeight(tree->left->left) - AVLtree_getHeight(tree->left->right)) >= 0)
+        return AVLtree_rotateLeft(tree);
+    if (balance > 1 && (AVLtree_getHeight(tree->left->left) - AVLtree_getHeight(tree->left->right)) < 0)
+        return AVLtree_doubleRotateLeft(tree);
+
+    if (balance < -1 && (AVLtree_getHeight(tree->right->left) - AVLtree_getHeight(tree->right->right)) <= 0)
+        return AVLtree_rotateRight(tree);
+    if (balance < -1 && (AVLtree_getHeight(tree->right->left) - AVLtree_getHeight(tree->right->right)) > 0)
+        return AVLtree_doubleRotateRight(tree);
+
+    return tree;
+}
+
 
 /*
-    if (node) {
-        if (tree && tree == node) {
-            free(node);
-        } else if (cmp(node->data, tree->data)) {
-            AVLtree_delete(tree->left, cmp, node);
-
-            if (AVLtree_getHeight(tree->left) - AVLtree_getHeight(tree->right) == 2) {
-                if (cmp(node->data, tree->left->data))
-                    tree = AVLtree_rotateLeft(tree);
-                else
-                    tree = AVLtree_doubleRotateLeft(tree);
-            }
-
-        } else if (cmp(tree->data, node->data)) {
-            AVLtree_delete(tree->right, cmp, node);
-
-            if (AVLtree_getHeight(tree->right) - AVLtree_getHeight(tree->left) == 2) {
-                if (cmp(tree->right->data, node->data))
-                    tree = AVLtree_rotateRight(tree);
-                else
-                    tree = AVLtree_doubleRotateRight(tree);
-            }
-        }
-
+ * Fonction de suppression de noeud.
+ * Celle-ci va d'abord se positionner par recursion sur le noeud correspondant au noeud voulant être supprime.
+ * Apres, nous separons les etats entre les noeuds possedant 0 ou 1 fils et le reste pour effecter un traitement
+ * permettant de liberer la memoire.
+ * A la suite, nous changeons la taille du noeud et balancons les noeuds si nous avons besoin avant de le
+ * retourner pour depiler la recursion et refaire ces operations.
+ */
+AVLTree AVLtree_deleteData(AVLTree tree, bool (*cmp) (const void *, const void *), void *data) {
+    if (tree == NULL)
         return tree;
+
+    if (cmp(data, tree->data)) {
+        tree->left = AVLtree_deleteData(tree->left, cmp, data);
+        if (tree->left)
+            tree->left->father = tree;
+
+    } else if (cmp(tree->data, data)) {
+        tree->right = AVLtree_deleteData(tree->right, cmp, data);
+        if (tree->right)
+            tree->right->father = tree;
+    } else {
+        if (!tree->left || !tree->right) {
+            AVLTree oNode;
+
+            oNode = (tree->left) ? tree->left : tree->right;
+            if (!oNode) {
+                oNode = tree;
+                tree = NULL;
+            } else {
+                oNode->father = tree->father;
+                *tree = *oNode;
+            }
+            free(oNode);
+        } else {
+            AVLTree oNode;
+
+            oNode = tree->right;
+            while (oNode->left)
+                oNode = oNode->left;
+
+            *tree->data = *oNode->data;
+            tree->right = AVLtree_deleteData(tree->right, cmp, data);
+            if (tree->right)
+                tree->right->father = tree;
+        }
     }
-    return NULL;*/
+
+    if (tree == NULL)
+        return tree;
+
+    AVLtree_setHeight(tree, MAX(AVLtree_getHeight(tree->left), AVLtree_getHeight(tree->right))+ 1);
+
+    int balance = AVLtree_getHeight(tree->left) - AVLtree_getHeight(tree->right);
+    if (balance > 1 && (AVLtree_getHeight(tree->left->left) - AVLtree_getHeight(tree->left->right)) >= 0)
+        return AVLtree_rotateRight(tree);
+    if (balance > 1 && (AVLtree_getHeight(tree->left->left) - AVLtree_getHeight(tree->left->right)) < 0)
+        return AVLtree_doubleRotateRight(tree);
+
+    if (balance < -1 && (AVLtree_getHeight(tree->right->left) - AVLtree_getHeight(tree->right->right)) <= 0)
+        return AVLtree_rotateLeft(tree);
+    if (balance < -1 && (AVLtree_getHeight(tree->right->left) - AVLtree_getHeight(tree->right->right)) > 0)
+        return AVLtree_doubleRotateLeft(tree);
+
+    return tree;
 }
 
 //----------------------------------------
