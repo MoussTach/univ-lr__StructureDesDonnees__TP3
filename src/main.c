@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include "time.h"
 
 #include "avltree.h"
 
@@ -35,7 +36,7 @@ void    randomTree() {
     int     value;
 
     sizeInt = sizeof(int);
-    sizeTab = rand() % 20;
+    sizeTab = rand() % 20 + 1;
     racine = NULL;
 
     index = 0;
@@ -204,7 +205,7 @@ int main(){
 
     printf("\n\n-----RANDOM TREE-------\n");
 
-    srand(12345);
+    srand(time(NULL));
     randomTree();
     return EXIT_SUCCESS;
 }
