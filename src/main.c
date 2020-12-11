@@ -9,7 +9,6 @@ void display_avl(AVLTree node) {
         return;
     printf("%d-[%p]",*(int*)node->data, node);
 
-    printf("(F:%p)--->", node->father);
     if(node->left)
         printf("(L:%d)", *(int*)node->left->data);
     if(node->right)
@@ -28,13 +27,32 @@ void    monPrintF(void * a, void * b) {
     printf("Valeur du noeud : %d\n", *(int*)a);
 }
 
+void    randomTree() {
+    AVLTree racine;
+    int     sizeTab;
+    int     index;
+    size_t  sizeInt;
+    int     value;
+
+    sizeInt = sizeof(int);
+    sizeTab = rand() % 20;
+    racine = NULL;
+
+    index = 0;
+    while (index++ < sizeTab) {
+        value = rand() % 1000;
+        racine = AVLtree_insertData(racine, compare, &value, sizeInt);
+    }
+    display_avl(racine);
+}
+
 /**
  * Tests réalisés pour les arbres AVL
  * N'affiche rien mais est basé sur des anticipations de valeurs
  * pour réaliser des pseudos tests unitaires
  * Et affichage final des valeurs des tris
  */
-void testArbresAVL(void){
+void    testArbresAVL(void){
     size_t sizeInt = sizeof(int);
 
     //test AVLtree_create
@@ -52,7 +70,7 @@ void testArbresAVL(void){
 
     //test AVLtree_settData
     //AVLtree_settData n'est pas a utiliser comme fonction d'arbre
-    //car celui-ci n'effectue aucune rotation
+    //car celle-ci n'effectue aucune rotation
     int j2 = 9;
     AVLtree_setData(node1, &j2, sizeInt);
     assert(9 == *(int*)AVLtree_getData(node1));
@@ -173,9 +191,20 @@ void testArbresAVL(void){
     printf("\nTri post-order : \n");
     AVLtree_post_order(racine, monPrintF, NULL);
     printf("PASS -> AVLtree_post_order\n");
+
+    //test AVLtree_deleteTree
+    AVLtree_deleteTree(&racine);
+    printf("------------\n");
+    display_avl(racine);
+    printf("PASS -> AVLtree_deleteTree\n");
 }
 
 int main(){
     testArbresAVL();
+
+    printf("\n\n-----RANDOM TREE-------\n");
+
+    srand(12345);
+    randomTree();
     return EXIT_SUCCESS;
 }

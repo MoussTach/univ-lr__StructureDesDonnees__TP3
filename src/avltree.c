@@ -51,8 +51,7 @@ AVLTree AVLtree_create(const void *data, size_t size) {
     AVLTree tree;
 
     tree = AVLtree_new();
-    if ((tree = (AVLTree) malloc((sizeof(AVLTree) * 3) + sizeof(int) + size))) {
-        tree->father = NULL;
+    if ((tree = (AVLTree) malloc((sizeof(AVLTree) * 2) + sizeof(int) + size))) {
         tree->left = NULL;
         tree->right = NULL;
         memcpy(tree->data, data, size);
@@ -133,18 +132,11 @@ AVLTree AVLtree_getMAX(const AVLTree node) {
  */
 AVLTree AVLtree_rotateLeft(const AVLTree tree) {
     AVLTree oNode;
-    AVLTree ofNode;
 
     oNode = tree->left;
     tree->left = oNode->right;
     oNode->right = tree;
 
-    ofNode = tree->father;
-    tree->father = oNode;
-    oNode->father = ofNode;
-
-    //TODO
-    printf("rl | tree[%p] - oNode[%p]\n", tree, oNode);
     AVLtree_setHeight(tree, MAX(AVLtree_getHeight(tree->left), AVLtree_getHeight(tree->right)) + 1);
     AVLtree_setHeight(oNode, MAX(AVLtree_getHeight(oNode->left), tree->height) + 1);
     return oNode;
@@ -156,18 +148,11 @@ AVLTree AVLtree_rotateLeft(const AVLTree tree) {
  */
 AVLTree AVLtree_rotateRight(const AVLTree tree) {
     AVLTree oNode;
-    AVLTree ofNode;
 
     oNode = tree->right;
     tree->right = oNode->left;
     oNode->left = tree;
 
-    ofNode = tree->father;
-    tree->father = oNode;
-    oNode->father = ofNode;
-
-    //TODO
-    printf("rr | tree[%p] - oNode[%p]\n", tree, oNode);
     AVLtree_setHeight(tree, MAX(AVLtree_getHeight(tree->left), AVLtree_getHeight(tree->right)) + 1);
     AVLtree_setHeight(oNode, MAX(AVLtree_getHeight(oNode->right), tree->height) + 1);
     return oNode;
@@ -179,8 +164,6 @@ AVLTree AVLtree_rotateRight(const AVLTree tree) {
  * puis vers la gauche.
  */
 AVLTree AVLtree_doubleRotateLeft(const AVLTree tree) {
-    //TODO
-    printf(">drl\n");
     tree->left = AVLtree_rotateRight(tree->left);
     return AVLtree_rotateLeft(tree);
 }
@@ -191,8 +174,6 @@ AVLTree AVLtree_doubleRotateLeft(const AVLTree tree) {
  * puis vers la droite.
  */
 AVLTree AVLtree_doubleRotateRight(const AVLTree tree) {
-    //TODO
-    printf(">drr\n");
     tree->right = AVLtree_rotateLeft(tree->right);
     return AVLtree_rotateRight(tree);
 }
@@ -238,8 +219,6 @@ AVLTree AVLtree_insertData(AVLTree tree, bool (*cmp)(const void *, const void *)
                 return NULL;
         } else if (cmp(data, tree->data)) {
             tree->left = AVLtree_insertData(tree->left, cmp, data, size);
-            if (tree->left)
-                tree->left->father = tree;
 
             if (AVLtree_getHeight(tree->left) - AVLtree_getHeight(tree->right) == 2) {
                 if (cmp(data, tree->left->data))
@@ -250,8 +229,6 @@ AVLTree AVLtree_insertData(AVLTree tree, bool (*cmp)(const void *, const void *)
 
         } else if (cmp(tree->data, data)) {
             tree->right = AVLtree_insertData(tree->right, cmp, data, size);
-            if (tree->right)
-                tree->right->father = tree;
 
             if (AVLtree_getHeight(tree->right) - AVLtree_getHeight(tree->left) == 2) {
                 if (cmp(tree->right->data, data))
@@ -288,8 +265,6 @@ AVLTree AVLtree_insertNode(AVLTree tree, bool (*cmp) (const void *, const void *
             tree = newNode;
         } else if (cmp(newNode->data, tree->data)) {
             tree->left = AVLtree_insertNode(tree->left, cmp, newNode);
-            if (tree->left)
-                tree->left->father = tree;
 
             if (AVLtree_getHeight(tree->left) - AVLtree_getHeight(tree->right) == 2) {
                 if (cmp(newNode->data, tree->left->data))
@@ -300,8 +275,6 @@ AVLTree AVLtree_insertNode(AVLTree tree, bool (*cmp) (const void *, const void *
 
         } else if (cmp(tree->data, newNode->data)) {
             tree->right = AVLtree_insertNode(tree->right, cmp, newNode);
-            if (tree->right)
-                tree->right->father = tree;
 
             if (AVLtree_getHeight(tree->right) - AVLtree_getHeight(tree->left) == 2) {
                 if (cmp(tree->right->data, newNode->data))
@@ -330,17 +303,12 @@ AVLTree AVLtree_deleteNode(AVLTree tree, bool (*cmp) (const void *, const void *
     if (tree == NULL)
         return tree;
 
-    printf("in[%d]\n", *(int*)tree->data);
-
     if (cmp(delNode->data, tree->data)) {
         tree->left = AVLtree_deleteNode(tree->left, cmp, delNode);
-        if (tree->left)
-            tree->left->father = tree;
 
     } else if (cmp(tree->data, delNode->data)) {
         tree->right = AVLtree_deleteNode(tree->right, cmp, delNode);
-        if (tree->right)
-            tree->right->father = tree;
+
     } else {
         if (!tree->left || !tree->right) {
             AVLTree oNode;
@@ -350,7 +318,6 @@ AVLTree AVLtree_deleteNode(AVLTree tree, bool (*cmp) (const void *, const void *
                 oNode = tree;
                 tree = NULL;
             } else {
-                oNode->father = tree->father;
                 *tree = *oNode;
             }
             free(oNode);
@@ -363,8 +330,6 @@ AVLTree AVLtree_deleteNode(AVLTree tree, bool (*cmp) (const void *, const void *
 
             *tree->data = *oNode->data;
             tree->right = AVLtree_deleteNode(tree->right, cmp, delNode);
-            if (tree->right)
-                tree->right->father = tree;
         }
     }
 
@@ -402,13 +367,10 @@ AVLTree AVLtree_deleteData(AVLTree tree, bool (*cmp) (const void *, const void *
 
     if (cmp(data, tree->data)) {
         tree->left = AVLtree_deleteData(tree->left, cmp, data);
-        if (tree->left)
-            tree->left->father = tree;
 
     } else if (cmp(tree->data, data)) {
         tree->right = AVLtree_deleteData(tree->right, cmp, data);
-        if (tree->right)
-            tree->right->father = tree;
+
     } else {
         if (!tree->left || !tree->right) {
             AVLTree oNode;
@@ -418,7 +380,6 @@ AVLTree AVLtree_deleteData(AVLTree tree, bool (*cmp) (const void *, const void *
                 oNode = tree;
                 tree = NULL;
             } else {
-                oNode->father = tree->father;
                 *tree = *oNode;
             }
             free(oNode);
@@ -431,8 +392,6 @@ AVLTree AVLtree_deleteData(AVLTree tree, bool (*cmp) (const void *, const void *
 
             *tree->data = *oNode->data;
             tree->right = AVLtree_deleteData(tree->right, cmp, data);
-            if (tree->right)
-                tree->right->father = tree;
         }
     }
 
@@ -453,6 +412,18 @@ AVLTree AVLtree_deleteData(AVLTree tree, bool (*cmp) (const void *, const void *
         return AVLtree_doubleRotateLeft(tree);
 
     return tree;
+}
+
+/*
+ * Fonction permettant de libérer la mémoire de tout l'arbre
+ */
+void    AVLtree_deleteTree(AVLTree *tree) {
+    if (*tree) {
+        AVLtree_deleteTree(&((*tree)->left));
+        AVLtree_deleteTree(&((*tree)->right));
+        free(*tree);
+        *tree = NULL;
+    }
 }
 
 //----------------------------------------

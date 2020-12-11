@@ -7,7 +7,6 @@
 
 typedef struct AVLTreeNode *AVLTree;
 struct          AVLTreeNode {
-        AVLTree father;
         AVLTree left;
         AVLTree right;
         int     height;
@@ -50,6 +49,7 @@ AVLTree AVLtree_insertNode(AVLTree tree, bool (*cmp)(const void *, const void *)
 //----------------------------------------
 AVLTree AVLtree_deleteNode(AVLTree tree, bool (*cmp) (const void *, const void *), const AVLTree node);
 AVLTree AVLtree_deleteData(AVLTree tree, bool (*cmp) (const void *, const void *), void *data);
+void    AVLtree_deleteTree(AVLTree *tree);
 
 //----------------------------------------
 void    AVLtree_pre_order(const AVLTree tree, void (*func)(void *, void *), void *extra_data);
